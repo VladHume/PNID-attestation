@@ -1,0 +1,113 @@
+name: GitHub Actions Tasks
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  pytest:
+    name: 1. Автоматичне тестування з Pytest
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Завантаження репозиторію
+        uses: actions/checkout@v4
+
+      - name: Встановлення Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Встановлення залежностей
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Запуск Pytest
+        run: pytest
+
+  lint:
+    name: 2. Перевірка стилю коду
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Завантаження репозиторію
+        uses: actions/checkout@v4
+
+      - name: Встановлення Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Встановлення Flake8
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8
+
+      - name: Перевірка стилю коду
+        run: flake8 . --max-line-length=88 --exclude=.git,__pycache__,.venv
+
+  multi-version-test:
+    name: 3. Мультиверсійне тестування
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+
+    steps:
+      - name: Завантаження репозиторію
+        uses: actions/checkout@v4
+
+      - name: Встановлення Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Встановлення залежностей
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Запуск тестів
+        run: pytest
+
+  docker-build:
+    name: 4. Збірка Docker-контейнера
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Завантаження репозиторію
+        uses: actions/checkout@v4
+
+      - name: Збірка Docker-образу
+        run: docker build -t github-actions-python-app .
+
+  html-report:
+    name: 5. Автоматичний HTML-звіт
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Завантаження репозиторію
+        uses: actions/checkout@v4
+
+      - name: Встановлення Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Встановлення залежностей
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Генерація HTML-звіту
+        run: pytest --html=report.html --self-contained-html
+
+      - name: Завантаження HTML-звіту як artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-html-report
+          path: report.html
